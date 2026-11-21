@@ -133,7 +133,7 @@ main>.say+.sec h3{margin-top:38px}
 </head>
 <body>
 <script>
-var APP_V=10;window.__SKIP=false;
+var APP_V=11;window.__SKIP=false;
 (function(){try{
  var u=JSON.parse(localStorage.getItem('jz.upd')||'null');
  if(!u||!(u.v>APP_V)||!u.html)return;
@@ -203,6 +203,11 @@ var APP_V=10;window.__SKIP=false;
   <div class="row"><input id="mci" placeholder="تصنيف جديد، مثل: بيت"><button id="mca">إضافة</button></div>
   <label for="mni">دفتر جديد</label>
   <div class="row"><input id="mni" placeholder="مثال: العمل"><button id="mna">إضافة</button></div>
+  <label>نسخة احتياطية</label>
+  <div class="row" style="flex-wrap:wrap"><button id="bkx">تصدير ملف</button><button id="bkc">نسخ النص</button><button id="bki">استيراد ملف</button></div>
+  <input type="file" id="bkf" accept=".json,application/json" hidden>
+  <div class="row"><input id="bkt" placeholder="الصق نص النسخة هنا ثم اضغط استيراد"><button id="bkp">استيراد</button></div>
+  <div class="fsum" id="bks"></div>
   <div class="act"><button class="del" id="mdel">حذف هذا الدفتر</button><button class="cancel" id="mclose">إغلاق</button></div>
 </dialog>
 
@@ -355,6 +360,7 @@ function renderManage(){
   const B=cb();$('mbn').value=B.name;
   const chips=(arr,k)=>arr.map((x,i)=>`<span class="chip">${esc(x)}<button data-k="${k}" data-i="${i}" aria-label="حذف">×</button></span>`).join('')||'<span class="empty" style="padding:6px">لا يوجد</span>';
   $('mwl').innerHTML=chips(B.wallets,'wallets');$('mct').innerHTML=chips(B.cats,'cats');
+  $('bks').textContent=S.lastBackup?'آخر نسخة احتياطية: '+fmtD(S.lastBackup):'لم تُنشأ نسخة احتياطية بعد';
   $('mdel').hidden=S.books.length<2;$('mdel').textContent='حذف هذا الدفتر';
 }
 $('gear').onclick=()=>{renderManage();$('mdlg').showModal()};
@@ -481,6 +487,8 @@ function mergeData(a,b){
     const lb=map.get(rb.id);
     if(!lb){rb.del=rb.del||{};rb.tx=(rb.tx||[]).filter(t=>!rb.del[t.id]);map.set(rb.id,rb);return}
     if((rb.u||0)>(lb.u||0)){lb.name=rb.name;lb.wallets=rb.wallets;lb.cats=rb.cats;lb.u=rb.u}
+    if(!(lb.wallets||[]).length&&(rb.wallets||[]).length)lb.wallets=rb.wallets;
+    if(!(lb.cats||[]).length&&(rb.cats||[]).length)lb.cats=rb.cats;
     lb.last=lb.last||rb.last;
     lb.del=Object.assign({},rb.del||{},lb.del||{});
     const tm=new Map(lb.tx.map(t=>[t.id,t]));
@@ -542,6 +550,41 @@ $('sout').onclick=()=>{const y=SY();y.access='';y.refresh='';y.uid='';saveRaw();
 window.addEventListener('online',queueSync);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)queueSync()});
 if(S.sync&&S.sync.access)setTimeout(syncNow,800);
+/* ===== النسخ الاحتياطي ===== */
+const bmsg=m=>{$('bks').textContent=m};
+const backupData=()=>JSON.stringify({app:'jazdani',v:1,exportedAt:new Date().toISOString(),books:S.books,cur:S.cur,delBooks:S.delBooks||{}});
+async function doExport(){
+  const txt=backupData(),name='jazdani-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  try{
+    if(NATIVE){
+      const P=window.Capacitor&&Capacitor.Plugins;
+      if(!(P&&P.Filesystem&&P.Share)){bmsg('التصدير كملف يحتاج تحديث الـ APK. استخدم زر «نسخ النص» حاليا.');return}
+      const r=await P.Filesystem.writeFile({path:name,data:txt,directory:'CACHE',encoding:'utf8'});
+      await P.Share.share({title:'نسخة جزداني الاحتياطية',url:r.uri,dialogTitle:'حفظ النسخة الاحتياطية'});
+    }else{
+      const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();
+      setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
+    }
+    S.lastBackup=Date.now();saveRaw();renderManage();bmsg('تم تجهيز النسخة: '+name);
+  }catch(e){const m=(e&&e.message)||String(e);if(/cancel/i.test(m)){bmsg('أُلغي التصدير');return}bmsg('تعذّر التصدير: '+m+' — جرّب زر «نسخ النص»')}
+}
+async function doCopy(){
+  const txt=backupData();
+  try{await navigator.clipboard.writeText(txt)}
+  catch(e){$('bkt').value=txt;$('bkt').focus();$('bkt').select();try{document.execCommand('copy')}catch(e2){}}
+  S.lastBackup=Date.now();saveRaw();renderManage();bmsg('تم نسخ النسخة الاحتياطية. الصقها بملاحظات أو أرسلها لنفسك واحتفظ بها.');
+}
+function doImport(txt){
+  let d;try{d=JSON.parse(txt)}catch(e){bmsg('النص أو الملف غير صالح');return}
+  if(!d||!Array.isArray(d.books)||!d.books.length||!d.books.every(b=>b&&b.id&&Array.isArray(b.tx))){bmsg('هذا ليس ملف نسخة احتياطية من جزداني');return}
+  d.books.forEach(b=>{b.wallets=b.wallets||[];b.cats=b.cats||[]});
+  const cnt=()=>S.books.reduce((n,b)=>n+b.tx.length,0),before=cnt();
+  mergeData(S,{books:d.books,cur:d.cur||[],delBooks:d.delBooks||{}});
+  save();renderManage();render();bmsg('تم الاستيراد. عدد الحركات: '+before+' ← '+cnt());
+}
+$('bkx').onclick=doExport;$('bkc').onclick=doCopy;$('bki').onclick=()=>$('bkf').click();
+$('bkf').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>doImport(String(r.result));r.readAsText(f);e.target.value=''};
+$('bkp').onclick=()=>{const t=$('bkt').value.trim();if(t){doImport(t);$('bkt').value=''}};
 /* ===== التحديث التلقائي ===== */
 const UPDATE_BASE='';
 async function checkUpdate(){
