@@ -129,11 +129,21 @@ main>.say+.sec h3{margin-top:38px}
 #wt,#rdlg #rmo{min-width:0;font-size:13px}
 #wt th,#wt td,#rdlg #rmo th,#rdlg #rmo td{padding:9px 6px}
 }
+html.locked body>*:not(#lock){display:none!important}
+#lock{position:fixed;inset:0;z-index:300;background:radial-gradient(120% 90% at 100% 0,#1b7a76 0,transparent 60%),linear-gradient(160deg,#0b3436,#0a2527);color:#fff;display:flex;align-items:center;justify-content:center;padding:20px}
+#lock[hidden]{display:none}
+.lbox{width:min(92vw,340px);text-align:center}.lbox .brand{justify-content:center;font-size:30px;margin-bottom:6px}.lbox p{opacity:.8;margin:0 0 18px}
+.lbox input{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);text-align:center;font-size:18px;height:52px}
+.lbox input::placeholder{color:rgba(255,255,255,.55)}
+.lbox .go{width:100%;height:50px;margin-top:10px;border:0;border-radius:12px;background:linear-gradient(150deg,#f1c668,#d79b2f);color:#3a2a05;font:inherit;font-weight:600}
+.lbox .lnk{background:none;border:0;color:rgba(255,255,255,.7);margin-top:14px;font:inherit;font-size:13px;text-decoration:underline}
+.lbox .fsum{color:#ffa595;min-height:22px;text-align:center}
 </style>
 </head>
 <body>
 <script>
-var APP_V=11;window.__SKIP=false;
+var APP_V=13;window.__SKIP=false;
+try{if(localStorage.getItem('jz.lock'))document.documentElement.classList.add('locked')}catch(e){}
 (function(){try{
  var u=JSON.parse(localStorage.getItem('jz.upd')||'null');
  if(!u||!(u.v>APP_V)||!u.html)return;
@@ -174,6 +184,12 @@ var APP_V=11;window.__SKIP=false;
   </div>
 </main>
 
+<div id="lock" hidden>
+  <div class="lbox"><div class="brand"><i></i>جزداني</div><p>التطبيق مقفول</p>
+    <input id="lkp" type="password" placeholder="كلمة السر" autocomplete="current-password">
+    <button class="go" id="lku">فتح</button><div class="fsum" id="lke"></div>
+    <button class="lnk" id="lkf">نسيت كلمة السر؟</button></div>
+</div>
 <div class="toast" id="upd" hidden><span>في تحديث جديد جاهز</span><button id="updb">تطبيق الآن</button></div>
 <div class="toast" id="toast" hidden><span id="tmsg"></span><button id="undo">تراجع</button></div>
 
@@ -203,6 +219,16 @@ var APP_V=11;window.__SKIP=false;
   <div class="row"><input id="mci" placeholder="تصنيف جديد، مثل: بيت"><button id="mca">إضافة</button></div>
   <label for="mni">دفتر جديد</label>
   <div class="row"><input id="mni" placeholder="مثال: العمل"><button id="mna">إضافة</button></div>
+  <label>قفل التطبيق (كلمة سر)</label>
+  <div class="row" style="flex-wrap:wrap"><button id="lkset">تفعيل القفل</button><button id="lkoff" hidden>إلغاء القفل</button></div>
+  <div id="lkform" hidden>
+    <input id="lko" type="password" placeholder="كلمة السر الحالية" autocomplete="off" style="margin-top:6px">
+    <input id="lkn" type="password" placeholder="كلمة السر الجديدة (4 خانات على الأقل)" autocomplete="new-password" style="margin-top:6px">
+    <input id="lkn2" type="password" placeholder="أعد كتابة كلمة السر" autocomplete="new-password" style="margin-top:6px">
+    <select id="lkm" style="margin-top:6px"><option value="1">يقفل بعد دقيقة من الخروج</option><option value="5">يقفل بعد 5 دقائق من الخروج</option><option value="15">يقفل بعد 15 دقيقة من الخروج</option><option value="open">يقفل عند فتح التطبيق فقط</option></select>
+    <div class="row"><button id="lksave">حفظ</button><button id="lkcancel" style="background:var(--bg);color:var(--ink)">إلغاء</button></div>
+  </div>
+  <div class="fsum" id="lks"></div>
   <label>نسخة احتياطية</label>
   <div class="row" style="flex-wrap:wrap"><button id="bkx">تصدير ملف</button><button id="bkc">نسخ النص</button><button id="bki">استيراد ملف</button></div>
   <input type="file" id="bkf" accept=".json,application/json" hidden>
@@ -221,8 +247,8 @@ var APP_V=11;window.__SKIP=false;
 <dialog id="sdlg">
   <div class="fsum" id="sst" style="font-size:14px;color:var(--ink)"></div>
   <div id="sform">
-    <label for="su">رابط مشروع Supabase</label><input id="su" dir="ltr" placeholder="https://xxxx.supabase.co">
-    <label for="sk">المفتاح العام (anon key)</label><input id="sk" dir="ltr">
+    <div id="sconf"><label for="su">رابط مشروع Supabase</label><input id="su" dir="ltr" placeholder="https://xxxx.supabase.co">
+    <label for="sk">المفتاح العام (anon key)</label><input id="sk" dir="ltr"></div>
     <label for="se">البريد الإلكتروني</label><input id="se" type="email" dir="ltr">
     <label for="sp">كلمة السر</label><input id="sp" type="password" dir="ltr">
     <div class="act"><button class="save" id="sin">دخول</button><button class="cancel" id="sup">حساب جديد</button></div>
@@ -234,6 +260,9 @@ var APP_V=11;window.__SKIP=false;
 <script>
 (function(){if(window.__SKIP)return;
 const K2='jazdani.v2';
+/* ضع رابط مشروع Supabase والمفتاح العام (publishable) بين علامتي الاقتباس ليصيرا ثابتين لكل من يستعمل التطبيق */
+const SB_URL='https://qduwnxtxsdghzebgmhrz.supabase.co';
+const SB_KEY='sb_publishable_8G1Zx6LMeA-ykEbO6txerw_jinla7ho';
 const DEFCUR=[{c:'SYP',n:'ليرة سورية'},{c:'EGP',n:'جنيه مصري'},{c:'USD',n:'دولار'},{c:'EUR',n:'يورو'}];
 function fresh(old){return{books:[{id:'b1',name:'شخصي',wallets:[],cats:[],tx:(old&&old.tx)||[],last:(old&&old.last)||'SYP'}],cb:'b1',cur:(old&&old.cur)||DEFCUR}}
 let S;
@@ -303,6 +332,7 @@ function handle(txt){
 }
 async function nativeListen(){
   try{
+    hold(20000);
     NSR=NSR||(Capacitor.registerPlugin?Capacitor.registerPlugin('SpeechRecognition'):(Capacitor.Plugins&&Capacitor.Plugins.SpeechRecognition));
     if(!NSR)throw new Error('إضافة الصوت غير موجودة بالتطبيق، نفّذ npx cap sync android وأعد البناء');
     const perm=await NSR.requestPermissions();
@@ -360,6 +390,7 @@ function renderManage(){
   const B=cb();$('mbn').value=B.name;
   const chips=(arr,k)=>arr.map((x,i)=>`<span class="chip">${esc(x)}<button data-k="${k}" data-i="${i}" aria-label="حذف">×</button></span>`).join('')||'<span class="empty" style="padding:6px">لا يوجد</span>';
   $('mwl').innerHTML=chips(B.wallets,'wallets');$('mct').innerHTML=chips(B.cats,'cats');
+  renderLockSettings();
   $('bks').textContent=S.lastBackup?'آخر نسخة احتياطية: '+fmtD(S.lastBackup):'لم تُنشأ نسخة احتياطية بعد';
   $('mdel').hidden=S.books.length<2;$('mdel').textContent='حذف هذا الدفتر';
 }
@@ -473,10 +504,11 @@ $('rw').onchange=renderReport;$('rq').oninput=renderReport;
 $('rbody').onclick=e=>{const tr=e.target.closest('tr');if(!tr)return;
   if(tr.dataset.m){mo=tr.dataset.m;$('rdlg').close();render();return}
   const t=cb().tx.find(x=>String(x.id)===tr.dataset.id);if(t)open(t)};
-document.addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey)return;if(e.target.matches&&e.target.matches('input,select,textarea'))return;if(document.querySelector('dialog[open]'))return;if(e.key==='n'||e.key==='N')open();else if(e.key==='m'||e.key==='M')$('mic').click()});
+document.addEventListener('keydown',e=>{if(document.documentElement.classList.contains('locked'))return;if(e.ctrlKey||e.metaKey||e.altKey)return;if(e.target.matches&&e.target.matches('input,select,textarea'))return;if(document.querySelector('dialog[open]'))return;if(e.key==='n'||e.key==='N')open();else if(e.key==='m'||e.key==='M')$('mic').click()});
 render();
 /* ===== المزامنة ===== */
 const SY=()=>S.sync||(S.sync={});
+if(SB_URL&&SB_KEY){const y0=SY();y0.url=SB_URL;y0.key=SB_KEY}
 let syncing=false,stimer;
 const sstat=m=>{$('sst').textContent=m};
 function mergeData(a,b){
@@ -515,7 +547,7 @@ async function ensureToken(){
   if(Date.now()>y.exp-60000){setSession(await sapi('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:{refresh_token:y.refresh}}));saveRaw()}
 }
 async function auth(mode){
-  const y=SY();y.url=$('su').value.trim();y.key=$('sk').value.trim();y.email=$('se').value.trim();
+  const y=SY();y.url=SB_URL||$('su').value.trim();y.key=SB_KEY||$('sk').value.trim();y.email=$('se').value.trim();
   const pw=$('sp').value;
   if(!y.url||!y.key||!y.email||pw.length<6){sstat('عبّي كل الحقول (كلمة السر 6 خانات على الأقل)');return}
   try{
@@ -539,7 +571,7 @@ async function syncNow(){
 function queueSync(){if(syncing||!S.sync||!S.sync.access)return;clearTimeout(stimer);stimer=setTimeout(syncNow,2500)}
 function sview(){
   const y=SY(),on=!!y.access;
-  $('su').value=y.url||'';$('sk').value=y.key||'';$('se').value=y.email||'';
+  $('su').value=y.url||'';$('sk').value=y.key||'';$('se').value=y.email||'';$('sconf').hidden=!!(SB_URL&&SB_KEY);
   $('sform').hidden=on;$('sdone').hidden=!on;
   sstat(on?'مسجّل بـ '+y.email+(y.last?' — آخر مزامنة: '+fmtD(y.last):''):'أدخل بيانات مشروعك وحسابك');
 }
@@ -550,11 +582,73 @@ $('sout').onclick=()=>{const y=SY();y.access='';y.refresh='';y.uid='';saveRaw();
 window.addEventListener('online',queueSync);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)queueSync()});
 if(S.sync&&S.sync.access)setTimeout(syncNow,800);
+/* ===== قفل التطبيق ===== */
+const LK='jz.lock',te=new TextEncoder();
+const lockCfg=()=>{try{return JSON.parse(localStorage.getItem(LK)||'null')}catch(e){return null}};
+const b64=a=>btoa(String.fromCharCode.apply(null,a));
+const unb64=t=>Uint8Array.from(atob(t),c=>c.charCodeAt(0));
+async function hashPw(pw,salt,iter){
+  const k=await crypto.subtle.importKey('raw',te.encode(pw),'PBKDF2',false,['deriveBits']);
+  return b64(new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt:salt,iterations:iter,hash:'SHA-256'},k,256)));
+}
+async function checkPw(pw){const c=lockCfg();if(!c)return true;try{return (await hashPw(pw,unb64(c.s),c.i))===c.h}catch(e){return false}}
+async function setLock(pw,mode){const salt=crypto.getRandomValues(new Uint8Array(16)),iter=150000;localStorage.setItem(LK,JSON.stringify({s:b64(salt),h:await hashPw(pw,salt,iter),i:iter,mode:mode}))}
+const lmsg=m=>{$('lks').textContent=m};
+let holdLock=0,hiddenAt=0,fails=0,until=0,lkmode='on',fgArm=false;
+const hold=ms=>{holdLock++;setTimeout(()=>{holdLock--},ms)};
+function lockNow(){document.querySelectorAll('dialog[open]').forEach(d=>d.close());document.documentElement.classList.add('locked');$('lock').hidden=false;$('lkp').value='';$('lke').textContent=''}
+function unlockUI(){document.documentElement.classList.remove('locked');$('lock').hidden=true;$('lkp').value=''}
+function renderLockSettings(){const c=lockCfg();$('lkset').textContent=c?'تغيير كلمة السر':'تفعيل القفل';$('lkoff').hidden=!c;if(!$('lkform').hidden)return;lmsg(c?'القفل مفعّل على هذا الجهاز':'القفل غير مفعّل')}
+function openLockForm(mode){
+  lkmode=mode;$('lkform').hidden=false;
+  $('lko').hidden=mode==='on';$('lkn').hidden=mode==='off';$('lkn2').hidden=mode==='off';$('lkm').hidden=mode==='off';
+  $('lko').value=$('lkn').value=$('lkn2').value='';
+  const c=lockCfg();if(c)$('lkm').value=c.mode;
+  lmsg(mode==='change'?'اترك كلمة السر الجديدة فاضية إذا بدك تغيّر مدة القفل فقط':mode==='off'?'اكتب كلمة السر الحالية لإلغاء القفل':'اختار كلمة سر وتذكّرها. إذا نسيتها بتضطر تمسح بيانات هذا الجهاز وترجع نسخة احتياطية.');
+}
+$('lkset').onclick=()=>openLockForm(lockCfg()?'change':'on');
+$('lkoff').onclick=()=>openLockForm('off');
+$('lkcancel').onclick=()=>{$('lkform').hidden=true;renderLockSettings()};
+$('lksave').onclick=async()=>{
+  if(!(window.crypto&&crypto.subtle)){lmsg('القفل يحتاج اتصالا آمنا (https). غير مدعوم هنا.');return}
+  const cur=$('lko').value,n=$('lkn').value,n2=$('lkn2').value,m=$('lkm').value;
+  try{
+    if(lkmode!=='on'&&!(await checkPw(cur))){lmsg('كلمة السر الحالية غير صحيحة');return}
+    if(lkmode==='off'){localStorage.removeItem(LK);$('lkform').hidden=true;renderLockSettings();lmsg('تم إلغاء القفل');return}
+    if(n||lkmode==='on'){
+      if(n.length<4){lmsg('كلمة السر لازم 4 خانات على الأقل');return}
+      if(n!==n2){lmsg('كلمتا السر غير متطابقتين');return}
+      await setLock(n,m);
+    }else{const c=lockCfg();c.mode=m;localStorage.setItem(LK,JSON.stringify(c))}
+    $('lkform').hidden=true;renderLockSettings();lmsg('تم حفظ إعدادات القفل');
+  }catch(e){lmsg('تعذّر الحفظ: '+((e&&e.message)||e))}
+};
+$('lku').onclick=async()=>{
+  const c=lockCfg();if(!c){unlockUI();return}
+  if(Date.now()<until){$('lke').textContent='محاولات كثيرة. انتظر '+Math.ceil((until-Date.now())/1000)+' ثانية';return}
+  if(await checkPw($('lkp').value)){fails=0;unlockUI();return}
+  fails++;$('lkp').value='';$('lke').textContent='كلمة السر غير صحيحة';
+  if(fails>=5){until=Date.now()+30000*(fails-4);$('lke').textContent='محاولات كثيرة. انتظر '+Math.ceil((until-Date.now())/1000)+' ثانية'}
+};
+$('lkp').onkeydown=e=>{if(e.key==='Enter')$('lku').click()};
+$('lkf').onclick=()=>{
+  if(!fgArm){fgArm=true;$('lkf').textContent='اضغط مرة ثانية: بيتمسح كل بيانات هذا الجهاز';setTimeout(()=>{fgArm=false;$('lkf').textContent='نسيت كلمة السر؟'},5000);return}
+  try{localStorage.clear()}catch(e){}
+  location.reload();
+};
+document.addEventListener('visibilitychange',()=>{
+  const c=lockCfg();if(!c)return;
+  if(document.hidden){hiddenAt=Date.now();return}
+  if(holdLock>0||c.mode==='open'||!hiddenAt)return;
+  if(Date.now()-hiddenAt>=(+c.mode)*60000)lockNow();
+});
+if(lockCfg())lockNow();
 /* ===== النسخ الاحتياطي ===== */
 const bmsg=m=>{$('bks').textContent=m};
 const backupData=()=>JSON.stringify({app:'jazdani',v:1,exportedAt:new Date().toISOString(),books:S.books,cur:S.cur,delBooks:S.delBooks||{}});
 async function doExport(){
   const txt=backupData(),name='jazdani-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  hold(20000);
   try{
     if(NATIVE){
       const P=window.Capacitor&&Capacitor.Plugins;
@@ -582,7 +676,7 @@ function doImport(txt){
   mergeData(S,{books:d.books,cur:d.cur||[],delBooks:d.delBooks||{}});
   save();renderManage();render();bmsg('تم الاستيراد. عدد الحركات: '+before+' ← '+cnt());
 }
-$('bkx').onclick=doExport;$('bkc').onclick=doCopy;$('bki').onclick=()=>$('bkf').click();
+$('bkx').onclick=doExport;$('bkc').onclick=doCopy;$('bki').onclick=()=>{hold(120000);$('bkf').click()};
 $('bkf').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>doImport(String(r.result));r.readAsText(f);e.target.value=''};
 $('bkp').onclick=()=>{const t=$('bkt').value.trim();if(t){doImport(t);$('bkt').value=''}};
 /* ===== التحديث التلقائي ===== */
